@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 # Feed any artist (available on wikiart.org)
 # You can have multiple artists
 # Try to have at least 1000 images
-artists = ['claude-monet']
+artists = ['odilon-redon', 'georgia-o-keeffe', 'wassily-kandinsky']
 
 ARTIST_ALL = 'https://www.wikiart.org/en/{artist}/all-works/text-list'
 IMG_URL = 'https://uploads4.wikiart.org/images/{artist}/{img_name}.jpg'
@@ -26,7 +26,7 @@ def download_paintings(painting_names, artist):
     for name in painting_names:
         link = IMG_URL.format(artist=artist, img_name=name)
         url = requests.get(link, stream=True)
-        with open('../test/data/' + name + '.jpg', 'wb') as fout:
+        with open('../test2/data/' + name + '.jpg', 'wb') as fout:
             fout.write(url.content)
 
 def main():

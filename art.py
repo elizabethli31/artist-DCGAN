@@ -1,3 +1,6 @@
+import os
+import PIL
+from PIL import Image
 import torch
 import torch.nn as nn
 import torch.utils.data
@@ -7,8 +10,18 @@ import torch.optim as optim
 from tqdm import tqdm
 from utils.helpers import make_noise, save, weights_init
 
+# Remove corrupted images from scraping process
+for filename in os.listdir('test/data'):
+    if filename.endswith('.jpg'):
+        try:
+            img = PIL.Image.open('test/data/'+filename) 
+            img.verify()
+        except (IOError, SyntaxError) as e:
+            os.remove('test2/data/'+filename)
+PIL.ImageFile.LOAD_TRUNCATED_IMAGES = True
+
 # Preparing data
-dataset = dsets.ImageFolder(root='test',
+dataset = dsets.ImageFolder(root='test2',
                            transform=transforms.Compose([
                                transforms.Resize(64),
                                transforms.CenterCrop(64),
@@ -16,7 +29,7 @@ dataset = dsets.ImageFolder(root='test',
                                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
                            ]))
 
-dataloader = torch.utils.data.DataLoader(dataset, batch_size=128,
+dataloader = torch.utils.data.DataLoader(dataset, batch_size=64,
                                          shuffle=True, num_workers=0)
 
 device = torch.device("cuda:0" if (torch.cuda.is_available() and 1) else "cpu")
@@ -30,7 +43,7 @@ class Generator(nn.Module):
 
         self.main = nn.Sequential(
             # Get to training image size
-            nn.ConvTranspose2d(100, 512, 4, 1, 0, bias=False),
+            nn.ConvTranspose2d(128, 512, 4, 1, 0, bias=False),
             nn.BatchNorm2d(512),
             nn.ReLU(True),
             nn.ConvTranspose2d(512, 256, 4, 2, 1, bias=False),
@@ -72,7 +85,7 @@ class Discriminator(nn.Module):
     def forward(self, input):
         return self.main(input)
 
-gen = Generator(100).to(device)
+gen = Generator(128).to(device)
 gen.apply(weights_init)
 
 dis = Discriminator().to(device)
@@ -81,6 +94,7 @@ dis.apply(weights_init)
 optimizer_dis = optim.Adam(dis.parameters(), lr=0.0002, betas=(0.5, 0.999))
 optimizer_gen = optim.Adam(gen.parameters(), lr=0.0002, betas=(0.5, 0.999))
 
+# Binary cross entropy
 criterion = nn.BCELoss()
 
 def train(gen, dis, dat):
@@ -115,13 +129,10 @@ def train(gen, dis, dat):
 
 fixed_noise = make_noise(64)
 
-# img_list = []
 G_losses = []
 D_losses = []
-# iters = 0
 
-
-for epoch in range(25):
+for epoch in range(75):
     c=0
     # For each batch in the dataloader
     for x, data in tqdm(enumerate(dataloader), total=int(len(dataset)/dataloader.batch_size)):
@@ -132,11 +143,11 @@ for epoch in range(25):
         # Output training stats
         if c % 4 == 0:
             print('[%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f'
-                  % (epoch, 25, c, len(dataloader),
+                  % (epoch, 75, c, len(dataloader),
                      d_err.item(), g_err.item()))
 
         G_losses.append(d_err.item())
         D_losses.append(g_err.item())
 
     img = gen(fixed_noise).detach().cpu()
-    save(img, f"outputs/img{epoch}.jpg")
+    save(img, f"outputs/img{epoch+25}.jpg")

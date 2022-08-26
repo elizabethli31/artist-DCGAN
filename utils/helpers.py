@@ -8,7 +8,7 @@ device = torch.device('cuda:0' if (torch.cuda.is_available() and 1 ) else 'cpu')
 
 # Noise for generator
 def make_noise(size):
-    return torch.randn(size, 100, 1, 1).to(device)
+    return torch.randn(size, 128, 1, 1).to(device)
 
 def save(image, path):
     save_image(image, path, normalize=True)
